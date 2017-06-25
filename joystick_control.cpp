@@ -15,6 +15,7 @@ namespace gazebo
     public:
     Joystick 	joy;
     igm::Angle Target;
+    igm::Angle twist;
     //gazebo::physics::JointController *pj1;
 
     public: void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
@@ -31,6 +32,7 @@ namespace gazebo
       joy.start("/dev/input/js0");
       printf("Joystick started\n");
       Target = 0;
+      twist = 0;
 
       double PID_PGain = _sdf->Get<double>("PID_PGain");
       double PID_IGain = _sdf->Get<double>("PID_IGain");
@@ -70,20 +72,41 @@ namespace gazebo
         //joy.printUpdates();
         isUpdated = true;
       }
-      JAxis &axis = joy.getAxis(4);
-      if(axis.isUpdated())
+      bool going_up = false;
+      JAxis &getup_axis = joy.getAxis(5);
+      if(getup_axis.isUpdated())
       {
         Target = igm::Angle::Pi;//init to Pi
-        Target *= axis.getValue();
+        Target *= ((getup_axis.getValue()+1)/2);// 0->1
+        std::cout << "Target : " << Target << std::endl;
+        going_up = true;
+      }
+      JAxis &turnup_axis = joy.getAxis(2);
+      if(turnup_axis.isUpdated() && !going_up)
+      {
+        Target = igm::Angle::Pi;//init to Pi
+        Target *= -((turnup_axis.getValue()+1)/2);// 0->1
         std::cout << "Target : " << Target << std::endl;
       }
+      
+      JAxis &twist_axis = joy.getAxis(1);
+      if(twist_axis.isUpdated())
+      {
+        twist = igm::Angle::Pi;//init to Pi
+        twist *= twist_axis.getValue();
+        std::cout << "Twist : " << twist << std::endl;
+      }
+      
       joy.consumeAll();
       
+      igm::Angle Target_Front = twist - Target;
+      igm::Angle Target_Rear = twist + Target;
       physics::JointControllerPtr pj1 = this->model->GetJointController();
-      pj1->SetPositionTarget("rover::j_right_leg",-Target.Radian());
-      pj1->SetPositionTarget("rover::j_left_leg",-Target.Radian());
-      pj1->SetPositionTarget("rover::j_right_arm",Target.Radian());
-      pj1->SetPositionTarget("rover::j_left_arm",Target.Radian());
+      std::cout << "Front : " << Target_Front << std::endl;
+      pj1->SetPositionTarget("rover::j_right_leg",Target_Front.Radian());
+      pj1->SetPositionTarget("rover::j_left_leg",Target_Front.Radian());
+      pj1->SetPositionTarget("rover::j_right_arm",Target_Rear.Radian());
+      pj1->SetPositionTarget("rover::j_left_arm",Target_Rear.Radian());
       pj1->Update();
     }
 
