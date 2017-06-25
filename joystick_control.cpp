@@ -8,17 +8,6 @@
 namespace igm = ignition::math;
 namespace gzp = gazebo::physics;
 
-void regulateJoint(gzp::JointPtr joint,igm::Angle &Target)
-{
-  igm::Angle e_p = joint->Position();
-  igm::Angle e_a = Target - e_p;
-  e_a.Normalize();
-  double Correction = - e_a.Radian() * 10;
-  joint->SetForce(0,Correction);
-  //      std::cout << "Position : " << e_p << std::endl;
-  //  std::cout << "Error : " << e_a << std::endl;
-}
-
 namespace gazebo
 {
   class ModelPush : public ModelPlugin
@@ -26,11 +15,13 @@ namespace gazebo
     public:
     Joystick 	joy;
     igm::Angle Target;
+    gazebo::physics::JointController *pj1;
+
     public: void Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
     {
       // Store the pointer to the model
       this->model = _parent;
-      printf("Hello gzrover from RobLibs\n");
+      printf("Hello gzrover from RobLibs PID Update\n");
       // Listen to the update event. This event is broadcast every
       // simulation iteration.
       this->updateConnection = event::Events::ConnectWorldUpdateBegin(
@@ -39,7 +30,32 @@ namespace gazebo
     
       joy.start("/dev/input/js0");
       printf("Joystick started\n");
-      Target = igm::Angle::Pi;
+      Target = 0;
+
+      gazebo::common::PID j_pid(
+                                10, //P
+                                1,  //I
+                                0.01,  //D
+                                10, //I MAX
+                                -10,  //I min
+                                30, //cmd MAX
+                                -30   //cmd min
+                                );
+      pj1 = new physics::JointController(_parent);
+      pj1->AddJoint(this->model->GetJoint("j_right_leg"));
+      pj1->AddJoint(this->model->GetJoint("j_left_leg"));
+      pj1->AddJoint(this->model->GetJoint("j_right_arm"));
+      pj1->AddJoint(this->model->GetJoint("j_left_arm"));
+
+      pj1->SetPositionPID("rover::j_right_leg",j_pid);
+      pj1->SetPositionPID("rover::j_left_leg",j_pid);
+      pj1->SetPositionPID("rover::j_right_arm",j_pid);
+      pj1->SetPositionPID("rover::j_left_arm",j_pid);
+      
+      pj1->SetPositionTarget("rover::j_right_leg",-Target.Radian());
+      pj1->SetPositionTarget("rover::j_left_leg",-Target.Radian());
+      pj1->SetPositionTarget("rover::j_right_arm",Target.Radian());
+      pj1->SetPositionTarget("rover::j_left_arm",Target.Radian());
     }
 
     // Called by the world update start event
@@ -60,18 +76,15 @@ namespace gazebo
       {
         Target = igm::Angle::Pi;//init to Pi
         Target *= axis.getValue();
-        Target += igm::Angle::Pi;
         std::cout << "Target : " << Target << std::endl;
       }
       joy.consumeAll();
 
-      //this->model->GetJoint("j_right_leg")->JointC
-      regulateJoint(this->model->GetJoint("j_right_leg"),Target);
-      regulateJoint(this->model->GetJoint("j_left_leg"),Target);
-      igm::Angle minTarget = Target * -1;
-      regulateJoint(this->model->GetJoint("j_right_arm"),minTarget);
-      regulateJoint(this->model->GetJoint("j_left_arm"),minTarget);
-
+      pj1->SetPositionTarget("rover::j_right_leg",-Target.Radian());
+      pj1->SetPositionTarget("rover::j_left_leg",-Target.Radian());
+      pj1->SetPositionTarget("rover::j_right_arm",Target.Radian());
+      pj1->SetPositionTarget("rover::j_left_arm",Target.Radian());
+      pj1->Update();
     }
 
     // Pointer to the model
