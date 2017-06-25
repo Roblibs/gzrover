@@ -30,7 +30,7 @@ namespace gazebo
     {
       // Store the pointer to the model
       this->model = _parent;
-      printf("Hello : model is now Loaded\n");
+      printf("Hello gzrover from RobLibs\n");
       // Listen to the update event. This event is broadcast every
       // simulation iteration.
       this->updateConnection = event::Events::ConnectWorldUpdateBegin(
@@ -39,7 +39,7 @@ namespace gazebo
     
       joy.start("/dev/input/js0");
       printf("Joystick started\n");
-      Target = 0;
+      Target = igm::Angle::Pi;
     }
 
     // Called by the world update start event
@@ -58,8 +58,9 @@ namespace gazebo
       JAxis &axis = joy.getAxis(4);
       if(axis.isUpdated())
       {
-        Target = igm::Angle::HalfPi;//init to Pi/2
+        Target = igm::Angle::Pi;//init to Pi
         Target *= axis.getValue();
+        Target += igm::Angle::Pi;
         std::cout << "Target : " << Target << std::endl;
       }
       joy.consumeAll();
