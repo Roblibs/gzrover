@@ -15,13 +15,13 @@ namespace gazebo
     public:
     Joystick 	joy;
     igm::Angle Target;
-    gazebo::physics::JointController *pj1;
+    //gazebo::physics::JointController *pj1;
 
-    public: void Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
+    public: void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
     {
       // Store the pointer to the model
       this->model = _parent;
-      printf("Hello gzrover from RobLibs PID Update\n");
+      printf("Hello Rover from Model's SDF PID\n");
       // Listen to the update event. This event is broadcast every
       // simulation iteration.
       this->updateConnection = event::Events::ConnectWorldUpdateBegin(
@@ -32,20 +32,23 @@ namespace gazebo
       printf("Joystick started\n");
       Target = 0;
 
+      double PID_PGain = _sdf->Get<double>("PID_PGain");
+      double PID_IGain = _sdf->Get<double>("PID_IGain");
+      double PID_DGain = _sdf->Get<double>("PID_DGain");
+      double PID_IMAX = _sdf->Get<double>("PID_IMAX");
+      double PID_cmdMAX = _sdf->Get<double>("PID_cmdMAX");
+
       gazebo::common::PID j_pid(
-                                10, //P
-                                1,  //I
-                                0.01,  //D
-                                10, //I MAX
-                                -10,  //I min
-                                30, //cmd MAX
-                                -30   //cmd min
+                                PID_PGain, //P
+                                PID_IGain,  //I
+                                PID_DGain,  //D
+                                PID_IMAX, //I MAX
+                                -PID_IMAX,  //I min
+                                PID_cmdMAX, //cmd MAX
+                                -PID_cmdMAX   //cmd min
                                 );
-      pj1 = new physics::JointController(_parent);
-      pj1->AddJoint(this->model->GetJoint("j_right_leg"));
-      pj1->AddJoint(this->model->GetJoint("j_left_leg"));
-      pj1->AddJoint(this->model->GetJoint("j_right_arm"));
-      pj1->AddJoint(this->model->GetJoint("j_left_arm"));
+      physics::JointControllerPtr pj1 = this->model->GetJointController();
+
 
       pj1->SetPositionPID("rover::j_right_leg",j_pid);
       pj1->SetPositionPID("rover::j_left_leg",j_pid);
@@ -61,10 +64,6 @@ namespace gazebo
     // Called by the world update start event
     public: void OnUpdate(const common::UpdateInfo & /*_info*/)
     {
-      // Apply a small linear velocity to the model.
-      //this->model->SetLinearVel(ignition::math::Vector3d(.3, 0, 0));
-      //this->model->GetLink("j_right_leg")->SetForce(ignition::math::Vector3d(10, 0, 0));
-      //this->model->GetLink("j_right_leg")->SetForce(0,10);
       bool isUpdated = false;
       if(joy.update())//multiple events will be filtered, only last would appear afterwards
       {
@@ -79,7 +78,8 @@ namespace gazebo
         std::cout << "Target : " << Target << std::endl;
       }
       joy.consumeAll();
-
+      
+      physics::JointControllerPtr pj1 = this->model->GetJointController();
       pj1->SetPositionTarget("rover::j_right_leg",-Target.Radian());
       pj1->SetPositionTarget("rover::j_left_leg",-Target.Radian());
       pj1->SetPositionTarget("rover::j_right_arm",Target.Radian());

@@ -1,6 +1,13 @@
 <?xml version='1.0'?>
 <sdf version='1.6'>
   <model name='rover'>
+    <plugin name="libjoystick_control" filename="libjoystick_control.so">
+      <PID_PGain>20</PID_PGain>
+      <PID_IGain>10</PID_IGain>
+      <PID_DGain>5</PID_DGain>
+      <PID_IMAX>10</PID_IMAX>
+      <PID_cmdMAX>50</PID_cmdMAX>
+    </plugin>
     <self_collide>false</self_collide>
     <link name='left_leg'>
       <inertial>
@@ -311,7 +318,7 @@
       </inertial>
       <pose frame=''>-0.08 0 0.59 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>false</self_collide>
+      <self_collide>true</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -411,7 +418,7 @@
       </inertial>
       <pose frame=''>-0.08 0 0.03 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>false</self_collide>
+      <self_collide>true</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -609,7 +616,7 @@
       </inertial>
       <pose frame=''>0.08 0 0.59 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>false</self_collide>
+      <self_collide>true</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -807,7 +814,7 @@
       </inertial>
       <pose frame=''>0.08 0 0.03 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>false</self_collide>
+      <self_collide>true</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -1150,7 +1157,5 @@
     </joint>
     <static>0</static>
     <allow_auto_disable>1</allow_auto_disable>
-
-    <plugin name="libjoystick_control" filename="libjoystick_control.so"/>
   </model>
 </sdf>
