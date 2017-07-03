@@ -8,3 +8,11 @@ Gazebo directory for the Rover robot SDF model and plugin
 - Jerky PID
 
 https://youtu.be/AlXYAZM_Tuc
+
+- Stiff PID, Up Down and Twisting
+
+https://youtu.be/1Tv4VYB-lmo
+
+# Shared Documentation
+
+[Shared Directory](https://files.mycloud.com/home.php?brand=webfiles&seuuid=6ece74c1b594c29d059a8303682f5ae3&name=HomeRover)
