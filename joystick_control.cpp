@@ -16,6 +16,8 @@ namespace gazebo
     Joystick 	joy;
     igm::Angle Target;
     igm::Angle twist;
+    double Wheels;
+    double Turn;
     //gazebo::physics::JointController *pj1;
 
     public: void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
@@ -33,6 +35,8 @@ namespace gazebo
       printf("Joystick started\n");
       Target = 0;
       twist = 0;
+      Wheels = 0;
+      Turn = 0;
 
       double PID_PGain = _sdf->Get<double>("PID_PGain");
       double PID_IGain = _sdf->Get<double>("PID_IGain");
@@ -69,7 +73,7 @@ namespace gazebo
       bool isUpdated = false;
       if(joy.update())//multiple events will be filtered, only last would appear afterwards
       {
-        //joy.printUpdates();
+        joy.printUpdates();
         isUpdated = true;
       }
       bool going_up = false;
@@ -97,17 +101,29 @@ namespace gazebo
         std::cout << "Twist : " << twist << std::endl;
       }
       
+      JAxis &move_axis = joy.getAxis(4);
+      if(move_axis.isUpdated())
+      {
+        Wheels = move_axis.getValue();
+        std::cout << "Wheels : " << Wheels << std::endl;
+      }
+
       joy.consumeAll();
       
       igm::Angle Target_Front = twist - Target;
       igm::Angle Target_Rear = twist + Target;
       physics::JointControllerPtr pj1 = this->model->GetJointController();
-      std::cout << "Front : " << Target_Front << std::endl;
+      //std::cout << "Front : " << Target_Front << std::endl;
       pj1->SetPositionTarget("rover::j_right_leg",Target_Front.Radian());
       pj1->SetPositionTarget("rover::j_left_leg",Target_Front.Radian());
       pj1->SetPositionTarget("rover::j_right_arm",Target_Rear.Radian());
       pj1->SetPositionTarget("rover::j_left_arm",Target_Rear.Radian());
       pj1->Update();
+
+      model->GetJoint("j_left_arm_wheel")->SetForce(0,Wheels);
+      model->GetJoint("j_right_arm_wheel")->SetForce(0,Wheels);
+      model->GetJoint("j_left_leg_wheel")->SetForce(0,Wheels);
+      model->GetJoint("j_right_leg_wheel")->SetForce(0,Wheels);
     }
 
     // Pointer to the model
