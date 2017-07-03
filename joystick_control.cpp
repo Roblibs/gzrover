@@ -4,6 +4,7 @@
 #include <gazebo/common/common.hh>
 #include <stdio.h>
 #include "joystick.hpp"
+#include "servos.hpp"
 
 namespace igm = ignition::math;
 namespace gzp = gazebo::physics;
@@ -18,6 +19,7 @@ namespace gazebo
     igm::Angle twist;
     double Wheels;
     double Turn;
+    ServosController servos;
     //gazebo::physics::JointController *pj1;
 
     public: void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
@@ -56,15 +58,21 @@ namespace gazebo
       physics::JointControllerPtr pj1 = this->model->GetJointController();
 
 
-      pj1->SetPositionPID("rover::j_right_leg",j_pid);
+      //pj1->SetPositionPID("rover::j_right_leg",j_pid);
       pj1->SetPositionPID("rover::j_left_leg",j_pid);
       pj1->SetPositionPID("rover::j_right_arm",j_pid);
       pj1->SetPositionPID("rover::j_left_arm",j_pid);
       
-      pj1->SetPositionTarget("rover::j_right_leg",-Target.Radian());
+      //pj1->SetPositionTarget("rover::j_right_leg",-Target.Radian());
       pj1->SetPositionTarget("rover::j_left_leg",-Target.Radian());
       pj1->SetPositionTarget("rover::j_right_arm",Target.Radian());
       pj1->SetPositionTarget("rover::j_left_arm",Target.Radian());
+      //---------------------------------------------------------------------
+      servos.SetModel(_parent);
+      //servos.SetServo("j_right_leg","ax12a");
+      servos.SetServo("rover::j_right_leg","pid");
+      servos.SetPositionTarget("rover::j_right_leg",-Target.Radian());
+
     }
 
     // Called by the world update start event
@@ -114,7 +122,10 @@ namespace gazebo
       igm::Angle Target_Rear = twist + Target;
       physics::JointControllerPtr pj1 = this->model->GetJointController();
       //std::cout << "Front : " << Target_Front << std::endl;
-      pj1->SetPositionTarget("rover::j_right_leg",Target_Front.Radian());
+      //pj1->SetPositionTarget("rover::j_right_leg",Target_Front.Radian());
+      servos.SetPositionTarget("rover::j_right_leg",Target_Front.Radian());
+      servos.update();
+
       pj1->SetPositionTarget("rover::j_left_leg",Target_Front.Radian());
       pj1->SetPositionTarget("rover::j_right_arm",Target_Rear.Radian());
       pj1->SetPositionTarget("rover::j_left_arm",Target_Rear.Radian());
