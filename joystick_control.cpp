@@ -40,38 +40,19 @@ namespace gazebo
       Wheels = 0;
       Turn = 0;
 
-      double PID_PGain = _sdf->Get<double>("PID_PGain");
-      double PID_IGain = _sdf->Get<double>("PID_IGain");
-      double PID_DGain = _sdf->Get<double>("PID_DGain");
-      double PID_IMAX = _sdf->Get<double>("PID_IMAX");
-      double PID_cmdMAX = _sdf->Get<double>("PID_cmdMAX");
-
-      gazebo::common::PID j_pid(
-                                PID_PGain, //P
-                                PID_IGain,  //I
-                                PID_DGain,  //D
-                                PID_IMAX, //I MAX
-                                -PID_IMAX,  //I min
-                                PID_cmdMAX, //cmd MAX
-                                -PID_cmdMAX   //cmd min
-                                );
-      physics::JointControllerPtr pj1 = this->model->GetJointController();
-
-
-      //pj1->SetPositionPID("rover::j_right_leg",j_pid);
-      pj1->SetPositionPID("rover::j_left_leg",j_pid);
-      pj1->SetPositionPID("rover::j_right_arm",j_pid);
-      pj1->SetPositionPID("rover::j_left_arm",j_pid);
-      
-      //pj1->SetPositionTarget("rover::j_right_leg",-Target.Radian());
-      pj1->SetPositionTarget("rover::j_left_leg",-Target.Radian());
-      pj1->SetPositionTarget("rover::j_right_arm",Target.Radian());
-      pj1->SetPositionTarget("rover::j_left_arm",Target.Radian());
+      std::string ArmsServo = _sdf->Get<std::string>("ArmsServo");
+      std::cout << "ArmsServo : " << ArmsServo << std::endl;
       //---------------------------------------------------------------------
       servos.SetModel(_parent);
-      //servos.SetServo("j_right_leg","ax12a");
-      servos.SetServo("rover::j_right_leg","pid");
+      servos.SetServo("rover::j_right_leg",ArmsServo);
+      servos.SetServo("rover::j_left_leg",ArmsServo);
+      servos.SetServo("rover::j_right_arm",ArmsServo);
+      servos.SetServo("rover::j_left_arm",ArmsServo);
+
       servos.SetPositionTarget("rover::j_right_leg",-Target.Radian());
+      servos.SetPositionTarget("rover::j_left_leg",-Target.Radian());
+      servos.SetPositionTarget("rover::j_right_arm",Target.Radian());
+      servos.SetPositionTarget("rover::j_left_arm",Target.Radian());
 
     }
 
@@ -112,7 +93,7 @@ namespace gazebo
       JAxis &move_axis = joy.getAxis(4);
       if(move_axis.isUpdated())
       {
-        Wheels = move_axis.getValue();
+        Wheels = move_axis.getValue()*5;
         std::cout << "Wheels : " << Wheels << std::endl;
       }
 
@@ -120,16 +101,12 @@ namespace gazebo
       
       igm::Angle Target_Front = twist - Target;
       igm::Angle Target_Rear = twist + Target;
-      physics::JointControllerPtr pj1 = this->model->GetJointController();
-      //std::cout << "Front : " << Target_Front << std::endl;
-      //pj1->SetPositionTarget("rover::j_right_leg",Target_Front.Radian());
-      servos.SetPositionTarget("rover::j_right_leg",Target_Front.Radian());
-      servos.update();
 
-      pj1->SetPositionTarget("rover::j_left_leg",Target_Front.Radian());
-      pj1->SetPositionTarget("rover::j_right_arm",Target_Rear.Radian());
-      pj1->SetPositionTarget("rover::j_left_arm",Target_Rear.Radian());
-      pj1->Update();
+      servos.SetPositionTarget("rover::j_right_leg",Target_Front.Radian());
+      servos.SetPositionTarget("rover::j_left_leg",Target_Front.Radian());
+      servos.SetPositionTarget("rover::j_right_arm",Target_Rear.Radian());
+      servos.SetPositionTarget("rover::j_left_arm",Target_Rear.Radian());
+      servos.update();
 
       model->GetJoint("j_left_arm_wheel")->SetForce(0,Wheels);
       model->GetJoint("j_right_arm_wheel")->SetForce(0,Wheels);

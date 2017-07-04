@@ -2,11 +2,8 @@
 <sdf version='1.6'>
   <model name='rover'>
     <plugin name="libjoystick_control" filename="libjoystick_control.so">
-      <PID_PGain>20</PID_PGain>
-      <PID_IGain>10</PID_IGain>
-      <PID_DGain>5</PID_DGain>
-      <PID_IMAX>10</PID_IMAX>
-      <PID_cmdMAX>50</PID_cmdMAX>
+      <ArmsServo>PID</ArmsServo>
+      <WheelsMotor>AX-GM2212-72Kv</WheelsMotor>
     </plugin>
     <self_collide>false</self_collide>
     <link name='left_leg'>

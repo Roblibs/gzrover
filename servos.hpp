@@ -5,19 +5,26 @@
 #include <gazebo/physics/physics.hh>
 #include <gazebo/common/common.hh>
 
+enum class ServoType { PID, AX12A};
+
 class Servo
 {
 public:
-    std::string type;
-    double pgain,igain,dgain,imax,cmd_max;
+    ServoType type;
     gazebo::common::PID *pid;
+    
 };
 
 class ServosController
 {
+public:
+    ServosController();
 private:
     gazebo::physics::ModelPtr model;
     std::map<std::string,Servo*> servos;
+    bool    isPID;
+    bool    isAX12A;
+    bool    isBLDC;
 public:
 	std::string 	Name;
 public:
@@ -27,6 +34,7 @@ public:
 
     void SetPid(const std::string &jointName);
     void Set_ax12a(const std::string &jointName);
+    void Set_bldc_72(const std::string &jointName);
     
     void update();
 	
