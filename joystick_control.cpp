@@ -8,12 +8,14 @@
 
 namespace igm = ignition::math;
 namespace gzp = gazebo::physics;
+namespace gzc = gazebo::common;
 
 namespace gazebo
 {
   class ModelPush : public ModelPlugin
   {
     public:
+    gazebo::common::BatteryPtr bat;
     Joystick 	joy;
     igm::Angle Target;
     igm::Angle twist;
@@ -25,7 +27,18 @@ namespace gazebo
     public: void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
     {
       // Store the pointer to the model
-      this->model = _parent;
+      model = _parent;
+
+      //bat->UpdateParameters(_sdf);
+      std::string linkName = _sdf->Get<std::string>("link_name");
+      std::string batteyName = _sdf->Get<std::string>("battery_name");
+      std::cout << "Battery set up" << std::endl;
+      bat = model->GetLink(linkName)->Battery(batteyName);
+      GZ_ASSERT(bat, "Battery was NULL");
+      double powerLoad = _sdf->Get<double>("power_load");
+      uint32_t consumerId = bat->AddConsumer();
+      bool success = bat->SetPowerLoad(consumerId, powerLoad);
+
       printf("Hello Rover from Model's SDF PID\n");
       // Listen to the update event. This event is broadcast every
       // simulation iteration.
@@ -93,7 +106,7 @@ namespace gazebo
       JAxis &move_axis = joy.getAxis(4);
       if(move_axis.isUpdated())
       {
-        Wheels = move_axis.getValue()*5;
+        Wheels = move_axis.getValue();
         std::cout << "Wheels : " << Wheels << std::endl;
       }
 

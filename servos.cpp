@@ -18,7 +18,9 @@ void ServosController::SetPid(const std::string &jointName)
     servos.insert(std::make_pair(jointName,new Servo()));
     servos[jointName]->type = ServoType::PID;
     //                                              P,I,D, IMAX, Imin, cmdMAX, cmdmin
-    servos[jointName]->pid = new gazebo::common::PID(20,10,5,10,-10,50,-50);
+    //servos[jointName]->pid = new gazebo::common::PID(20,10,5,10,-10,50,-50);
+    double cmdMAX = 1.47;//15 Kg cm => 1.47 N.m
+    servos[jointName]->pid = new gazebo::common::PID(3,2,1,0.5,-0.5,cmdMAX,-cmdMAX);
     gazebo::physics::JointControllerPtr pj1 = model->GetJointController();
     pj1->SetPositionPID(jointName,*servos[jointName]->pid);
 }

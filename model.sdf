@@ -1,27 +1,22 @@
 <?xml version='1.0'?>
 <sdf version='1.6'>
   <model name='rover'>
-    <plugin name="libjoystick_control" filename="libjoystick_control.so">
-      <ArmsServo>PID</ArmsServo>
-      <WheelsMotor>AX-GM2212-72Kv</WheelsMotor>
-    </plugin>
-    <self_collide>false</self_collide>
     <link name='left_leg'>
       <inertial>
-        <mass>1</mass>
+        <mass>0.12</mass>
         <inertia>
-          <ixx>0.166667</ixx>
+          <ixx>0.000404</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.166667</iyy>
+          <iyy>0.000416</iyy>
           <iyz>0</iyz>
-          <izz>0.166667</izz>
+          <izz>2e-05</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
       <pose frame=''>-0.05 0 0.13 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>false</self_collide>
+      <self_collide>0</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -105,21 +100,24 @@
       </collision>
     </link>
     <link name='body'>
+      <battery name="linear_battery">
+        <voltage>12.592</voltage>
+      </battery>
       <inertial>
-        <mass>1</mass>
+        <mass>0.05</mass>
         <inertia>
-          <ixx>0.166667</ixx>
+          <ixx>0.00016833</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.166667</iyy>
+          <iyy>0.00018167</iyy>
           <iyz>0</iyz>
-          <izz>0.166667</izz>
+          <izz>1.667e-05</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
       <pose frame=''>0 0 0.31 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>false</self_collide>
+      <self_collide>0</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -204,20 +202,20 @@
     </link>
     <link name='left_arm'>
       <inertial>
-        <mass>1</mass>
+        <mass>0.12</mass>
         <inertia>
-          <ixx>0.166667</ixx>
+          <ixx>0.000404</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.166667</iyy>
+          <iyy>0.000416</iyy>
           <iyz>0</iyz>
-          <izz>0.166667</izz>
+          <izz>2e-05</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
       <pose frame=''>-0.05 0 0.49 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>false</self_collide>
+      <self_collide>0</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -302,20 +300,20 @@
     </link>
     <link name='left_arm_wheel'>
       <inertial>
-        <mass>1</mass>
+        <mass>0.02</mass>
         <inertia>
-          <ixx>0.145833</ixx>
+          <ixx>5.17e-06</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.145833</iyy>
+          <iyy>5.17e-06</iyy>
           <iyz>0</iyz>
-          <izz>0.125</izz>
+          <izz>9e-06</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
       <pose frame=''>-0.08 0 0.59 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>true</self_collide>
+      <self_collide>1</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -402,20 +400,20 @@
     </link>
     <link name='left_leg_wheel'>
       <inertial>
-        <mass>1</mass>
+        <mass>0.02</mass>
         <inertia>
-          <ixx>0.145833</ixx>
+          <ixx>5.17e-06</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.145833</iyy>
+          <iyy>5.17e-06</iyy>
           <iyz>0</iyz>
-          <izz>0.125</izz>
+          <izz>9e-06</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
       <pose frame=''>-0.08 0 0.03 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>true</self_collide>
+      <self_collide>1</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -502,20 +500,20 @@
     </link>
     <link name='right_arm'>
       <inertial>
-        <mass>1</mass>
+        <mass>0.12</mass>
         <inertia>
-          <ixx>0.166667</ixx>
+          <ixx>0.000404</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.166667</iyy>
+          <iyy>0.000416</iyy>
           <iyz>0</iyz>
-          <izz>0.166667</izz>
+          <izz>2e-05</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
       <pose frame=''>0.05 0 0.49 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>false</self_collide>
+      <self_collide>0</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -600,20 +598,20 @@
     </link>
     <link name='right_arm_wheel'>
       <inertial>
-        <mass>1</mass>
+        <mass>0.02</mass>
         <inertia>
-          <ixx>0.145833</ixx>
+          <ixx>5.17e-06</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.145833</iyy>
+          <iyy>5.17e-06</iyy>
           <iyz>0</iyz>
-          <izz>0.125</izz>
+          <izz>9e-06</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
       <pose frame=''>0.08 0 0.59 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>true</self_collide>
+      <self_collide>1</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -700,20 +698,20 @@
     </link>
     <link name='right_leg'>
       <inertial>
-        <mass>1</mass>
+        <mass>0.12</mass>
         <inertia>
-          <ixx>0.166667</ixx>
+          <ixx>0.000404</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.166667</iyy>
+          <iyy>0.000416</iyy>
           <iyz>0</iyz>
-          <izz>0.166667</izz>
+          <izz>2e-05</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
       <pose frame=''>0.05 0 0.13 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>false</self_collide>
+      <self_collide>0</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -798,20 +796,20 @@
     </link>
     <link name='right_leg_wheel'>
       <inertial>
-        <mass>1</mass>
+        <mass>0.02</mass>
         <inertia>
-          <ixx>0.145833</ixx>
+          <ixx>5.17e-06</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.145833</iyy>
+          <iyy>5.17e-06</iyy>
           <iyz>0</iyz>
-          <izz>0.125</izz>
+          <izz>9e-06</izz>
         </inertia>
         <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
       <pose frame=''>0.08 0 0.03 0 -0 0</pose>
       <gravity>1</gravity>
-      <self_collide>true</self_collide>
+      <self_collide>1</self_collide>
       <kinematic>0</kinematic>
       <enable_wind>0</enable_wind>
       <visual name='visual'>
@@ -896,102 +894,6 @@
         </surface>
       </collision>
     </link>
-    <joint name='j_right_leg' type='revolute'>
-      <parent>body</parent>
-      <child>right_leg</child>
-      <pose frame=''>0 0 0.09 0 -0 0</pose>
-      <axis>
-        <xyz>1 0 0</xyz>
-        <use_parent_model_frame>0</use_parent_model_frame>
-        <limit>
-          <lower>-1.79769e+308</lower>
-          <upper>1.79769e+308</upper>
-          <effort>-1</effort>
-          <velocity>-1</velocity>
-        </limit>
-        <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
-          <damping>0</damping>
-        </dynamics>
-      </axis>
-      <physics>
-        <ode>
-          <limit>
-            <cfm>0</cfm>
-            <erp>0.2</erp>
-          </limit>
-          <suspension>
-            <cfm>0</cfm>
-            <erp>0.2</erp>
-          </suspension>
-        </ode>
-      </physics>
-    </joint>
-    <joint name='j_left_leg' type='revolute'>
-      <parent>body</parent>
-      <child>left_leg</child>
-      <pose frame=''>0 0 0.09 0 -0 0</pose>
-      <axis>
-        <xyz>1 0 0</xyz>
-        <use_parent_model_frame>0</use_parent_model_frame>
-        <limit>
-          <lower>-1.79769e+308</lower>
-          <upper>1.79769e+308</upper>
-          <effort>-1</effort>
-          <velocity>-1</velocity>
-        </limit>
-        <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
-          <damping>0</damping>
-        </dynamics>
-      </axis>
-      <physics>
-        <ode>
-          <limit>
-            <cfm>0</cfm>
-            <erp>0.2</erp>
-          </limit>
-          <suspension>
-            <cfm>0</cfm>
-            <erp>0.2</erp>
-          </suspension>
-        </ode>
-      </physics>
-    </joint>
-    <joint name='j_right_arm' type='revolute'>
-      <parent>body</parent>
-      <child>right_arm</child>
-      <pose frame=''>0 0 -0.09 0 -0 0</pose>
-      <axis>
-        <xyz>1 0 0</xyz>
-        <use_parent_model_frame>0</use_parent_model_frame>
-        <limit>
-          <lower>-1.79769e+308</lower>
-          <upper>1.79769e+308</upper>
-          <effort>-1</effort>
-          <velocity>-1</velocity>
-        </limit>
-        <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
-          <damping>0</damping>
-        </dynamics>
-      </axis>
-      <physics>
-        <ode>
-          <limit>
-            <cfm>0</cfm>
-            <erp>0.2</erp>
-          </limit>
-          <suspension>
-            <cfm>0</cfm>
-            <erp>0.2</erp>
-          </suspension>
-        </ode>
-      </physics>
-    </joint>
     <joint name='j_left_arm' type='revolute'>
       <parent>body</parent>
       <child>left_arm</child>
@@ -1009,6 +911,7 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
           <damping>0</damping>
+          <friction>0</friction>
         </dynamics>
       </axis>
       <physics>
@@ -1041,6 +944,40 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
           <damping>0</damping>
+          <friction>0</friction>
+        </dynamics>
+      </axis>
+      <physics>
+        <ode>
+          <limit>
+            <cfm>0</cfm>
+            <erp>0.2</erp>
+          </limit>
+          <suspension>
+            <cfm>0</cfm>
+            <erp>0.2</erp>
+          </suspension>
+        </ode>
+      </physics>
+    </joint>
+    <joint name='j_left_leg' type='revolute'>
+      <parent>body</parent>
+      <child>left_leg</child>
+      <pose frame=''>0 0 0.09 0 -0 0</pose>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+          <effort>-1</effort>
+          <velocity>-1</velocity>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+          <damping>0</damping>
+          <friction>0</friction>
         </dynamics>
       </axis>
       <physics>
@@ -1073,6 +1010,40 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
           <damping>0</damping>
+          <friction>0</friction>
+        </dynamics>
+      </axis>
+      <physics>
+        <ode>
+          <limit>
+            <cfm>0</cfm>
+            <erp>0.2</erp>
+          </limit>
+          <suspension>
+            <cfm>0</cfm>
+            <erp>0.2</erp>
+          </suspension>
+        </ode>
+      </physics>
+    </joint>
+    <joint name='j_right_arm' type='revolute'>
+      <parent>body</parent>
+      <child>right_arm</child>
+      <pose frame=''>0 0 -0.09 0 -0 0</pose>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+          <effort>-1</effort>
+          <velocity>-1</velocity>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+          <damping>0</damping>
+          <friction>0</friction>
         </dynamics>
       </axis>
       <physics>
@@ -1105,6 +1076,40 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
           <damping>0</damping>
+          <friction>0</friction>
+        </dynamics>
+      </axis>
+      <physics>
+        <ode>
+          <limit>
+            <cfm>0</cfm>
+            <erp>0.2</erp>
+          </limit>
+          <suspension>
+            <cfm>0</cfm>
+            <erp>0.2</erp>
+          </suspension>
+        </ode>
+      </physics>
+    </joint>
+    <joint name='j_right_leg' type='revolute'>
+      <parent>body</parent>
+      <child>right_leg</child>
+      <pose frame=''>0 0 0.09 0 -0 0</pose>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <use_parent_model_frame>0</use_parent_model_frame>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+          <effort>-1</effort>
+          <velocity>-1</velocity>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+          <damping>0</damping>
+          <friction>0</friction>
         </dynamics>
       </axis>
       <physics>
@@ -1137,6 +1142,7 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
           <damping>0</damping>
+          <friction>0</friction>
         </dynamics>
       </axis>
       <physics>
@@ -1154,5 +1160,18 @@
     </joint>
     <static>0</static>
     <allow_auto_disable>1</allow_auto_disable>
+    <plugin name='libjoystick_control' filename='libjoystick_control.so'>
+      <ArmsServo>PID</ArmsServo>
+      <WheelsMotor>AX-GM2212-72Kv</WheelsMotor>
+      <link_name>body</link_name>
+      <battery_name>linear_battery</battery_name>
+      <power_load>6.6</power_load> <!-- 6.6 W -->
+      <open_circuit_voltage_constant_coef>12.694</open_circuit_voltage_constant_coef>
+      <open_circuit_voltage_linear_coef>-3.1424</open_circuit_voltage_linear_coef>
+      <initial_charge>1.1665</initial_charge>
+      <capacity>1.2009</capacity>
+      <resistance>0.061523</resistance>
+      <smooth_current_tau>1.9499</smooth_current_tau>
+    </plugin>
   </model>
 </sdf>

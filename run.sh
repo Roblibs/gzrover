@@ -1,2 +1,2 @@
 #!/bin/bash
-gzserver my.world
+gzserver -u my.world --profile higher_de --verbose
