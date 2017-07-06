@@ -57,6 +57,7 @@ namespace gazebo
       std::cout << "ArmsServo : " << ArmsServo << std::endl;
       //---------------------------------------------------------------------
       servos.SetModel(_parent);
+      servos.SetBattery(bat);//currently only one battery for all servos, will evolve per servo
       servos.SetServo("rover::j_right_leg",ArmsServo);
       servos.SetServo("rover::j_left_leg",ArmsServo);
       servos.SetServo("rover::j_right_arm",ArmsServo);
