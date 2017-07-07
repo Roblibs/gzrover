@@ -58,7 +58,7 @@ namespace gazebo
       //---------------------------------------------------------------------
       servos.SetModel(_parent);
       servos.SetBattery(bat);//currently only one battery for all servos, will evolve per servo
-      servos.SetServo("rover::j_right_leg",ArmsServo);
+      servos.SetServo("rover::j_right_leg","AX12A");
       servos.SetServo("rover::j_left_leg",ArmsServo);
       servos.SetServo("rover::j_right_arm",ArmsServo);
       servos.SetServo("rover::j_left_arm",ArmsServo);
@@ -71,7 +71,7 @@ namespace gazebo
     }
 
     // Called by the world update start event
-    public: void OnUpdate(const common::UpdateInfo & /*_info*/)
+    public: void OnUpdate(const common::UpdateInfo & _info)
     {
       bool isUpdated = false;
       if(joy.update())//multiple events will be filtered, only last would appear afterwards
@@ -120,7 +120,7 @@ namespace gazebo
       servos.SetPositionTarget("rover::j_left_leg",Target_Front.Radian());
       servos.SetPositionTarget("rover::j_right_arm",Target_Rear.Radian());
       servos.SetPositionTarget("rover::j_left_arm",Target_Rear.Radian());
-      servos.update();
+      servos.update(_info.simTime.Double());
 
       model->GetJoint("j_left_arm_wheel")->SetForce(0,Wheels);
       model->GetJoint("j_right_arm_wheel")->SetForce(0,Wheels);

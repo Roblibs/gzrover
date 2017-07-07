@@ -5,34 +5,43 @@
 #include <gazebo/physics/physics.hh>
 #include <gazebo/common/common.hh>
 
-enum class ServoType { PID, AX12A};
+enum class ServoType { PID, DC};
 
 class DCModel
 {
 public:
     DCModel();
+    const double min_dt = 1*10^-6;//microsecond - it does not make sense to go that far, error likeliness
+    const double max_dt = 1*10^-3;//milisecond - it gets close to the time constants
     //Input Control Parameter
     double Voltage;//Applied Voltage V
 
     //Motor Static Params
     double Ra,La;//Resistance and inductance of the armature circuit
-    double motorFlux;//Motor Flux
+    double Ki;//current constant
+    double Kv;//Voltage constant
+    double reduction;
     
     //Motor State Params
     double counterElF;//Counter Electromotive Force V
     double current;//Armature current
+    double prevcurrent;
+    double didt;//current derivate
+    double prevtime;
 
     //Output result, to apply to the Joint
     double torque;//Motor Torque
 
     //input from the Physics engine
+    double position;//rad
     double speed;//Rotation (rad/s)
+private:
+    double safe_derive_current(double simtime);
 public:
-    void setParams(double r,double l, double f);   //on init
+    void update(double simtime);
+public:
+    void setParams(double r,double l, double ki, double kv);   //on init
     void control(double v);                        //input regulate
-    void updateSpeed(double o);                    //input Speed
-    double getCurrent();                           //output regulate, intermediate loop
-    double getTorque();                            //output Result
 };
 
 class Servo
@@ -42,12 +51,18 @@ public:
     gazebo::common::PID *pid;
     DCModel             *dc;
 public:
-    void update();
+    void update(double simtime = 0.0);
+public:
+    void updateSpeed(double o);                    //input Speed
+    double getCurrent();                           //output regulate, intermediate loop
+    double getTorque();                            //output Result
     
 };
 
 class ServosController
 {
+public:
+    const int Mechanical_To_Electrical_Simulation_Factor = 1;//only makes sense when pid is active
 public:
     ServosController();
 private:
@@ -55,7 +70,7 @@ private:
     gazebo::common::BatteryPtr bat;
     std::map<std::string,Servo*> servos;
     bool    isPID;
-    bool    isAX12A;
+    bool    isDC;
     bool    isBLDC;
 public:
 	std::string 	Name;
@@ -71,6 +86,6 @@ public:
     void Set_ax12a(const std::string &jointName);
     void Set_bldc_72(const std::string &jointName);
     
-    void update();
+    void update(double simtime = 0.0);
 	
 };
