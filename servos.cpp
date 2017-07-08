@@ -1,61 +1,96 @@
 
 #include "servos.hpp"
+#include "gazebo/common/Assert.hh"
 
 #include <cmath>
 
 namespace igm = ignition::math;
 namespace gzc = gazebo::common;
 namespace gzt = gazebo::transport;
+namespace gzm = gazebo::msgs;
+
+double clamp(double val, double low, double high) 
+{
+  return std::max(low, std::min(val, high));
+}
 
 DCModel::DCModel()
 {
     Voltage = 0;
     Ra = 10;    //10 Ohm
-    La = 0.001; //1 mH
+    La = 0.0001; //0.1 mH
     Ki = 0.005;
     Kv = 0.05;
     reduction = 254.0;
     counterElF = 0;
     current = 0;
+    didt = 0;
     prevcurrent = 0;
     torque = 0;
     speed = 0;
     prevtime = 0.0;
 }
 
-double DCModel::safe_derive_current(double simtime)
+bool DCModel::safe_dt(double simtime, double &dt)
 {
-    double res = 0;
+    double res = false;
     if(simtime != 0.0)                  //making sure it is a valid time and not the default value
-        if(simtime != prevtime)         //making sure the time has advanced so that dt is not 0
-            if(prevtime != 0.0)         //cannot calculate a dt on first step
-            {
-                double tdiff = simtime - prevtime;
-                if(tdiff >= min_dt)     //plausibilisation, small values are more likely to be errors
-                    if(tdiff <= max_dt) //plausibilisation, close to time constants, and eliminates gaps
-                    {
-                        res = (current - prevcurrent) / tdiff;
-                    }
-            }
+        if(simtime > prevtime)         //making sure the time has advanced so that dt is not 0
+        {
+            double tdiff = simtime - prevtime;
+            if(tdiff >= min_dt)     //plausibilisation, small values are more likely to be errors
+                if(tdiff <= max_dt) //plausibilisation, close to time constants, and eliminates gaps
+                {
+                    dt = tdiff;
+                    res = true;
+                }
+        }
     return res;
 }
 
 void DCModel::run_step(double simtime)
 {
-    //Stall Torque :  imax = 0.9, Torque = 1.5 N.m => K = 1,66 * red
-    //Max speed    :  Rpm max = 1.2 Rps, U = 9.6 v => K = 8 / red
-    //red = 2.2
-    //std::cout << "[" << Voltage << "]" << std::endl;
-    counterElF = Kv * speed * reduction;//speed is in rad/sec => Hz
+    double dt = 0;
+    if(safe_dt(simtime,dt))
+    {
+        //Stall Torque :  imax = 0.9, Torque = 1.5 N.m => K = 1,66 * red
+        //Max speed    :  Rpm max = 1.2 Rps, U = 9.6 v => K = 8 / red
+        //red = 2.2
+        //std::cout << "[" << Voltage << "]" << std::endl;
+        counterElF = Kv * speed * reduction;//speed is in rad/sec => Hz
+        if((counterElF < -20)||(counterElF>20))
+        {
+            std::cout << "counterElf Too High>counterElF: " << counterElF << " Kv " << Kv << " speed " << speed << " dt " << dt <<" reduction " << reduction << std::endl;
+        }
+        counterElF = clamp(counterElF,-10,10);
 
-    current = (Voltage - counterElF - La * didt) / Ra;
-    //char f_val[30];    sprintf(f_val,"i=%0.2f ",current);    std::cout << f_val;
-    torque = Ki * current * reduction;
-    //if(torque != 0){char f_val[30];    sprintf(f_val,"T=%0.2f ",torque);    std::cout << f_val << std::endl;}
-    didt = safe_derive_current(simtime);
-    //store values for next cycle
+        current = (Voltage - counterElF - La * didt) / Ra;
+        if((current < -6)||(current>6))
+        {
+            std::cout << "current Too High>current: "<< current <<" Voltage " << Voltage << " counterElF " << counterElF << " La " << La << " didt " << didt << " Ra " << Ra << std::endl;
+        }
+        current = clamp(current,-2,2);
+        //GZ_ASSERT(((current < -2)||(current>2)), "Current Too High");
+        //char f_val[30];    sprintf(f_val,"i=%0.2f ",current);    std::cout << f_val;
+        torque = Ki * current * reduction;
+        if((torque < -6)||(torque>6))
+        {
+            std::cout << "torque too High>torque: " << torque <<" Ki " << Ki << " current " << current << " reduction " << reduction << std::endl;
+        }
+        //GZ_ASSERT(((torque < -2)||(torque>2)), "Torque Too High");
+        //if(torque != 0){char f_val[30];    sprintf(f_val,"T=%0.2f ",torque);    std::cout << f_val << std::endl;}
+        didt = (current - prevcurrent) / dt;
+        //store values for next cycle
+        prevcurrent = current;
+    }
+    else
+    {
+        char f_val[60];    sprintf(f_val," min_dt=%0.8f ",min_dt);    std::cout << f_val;
+        sprintf(f_val," max_dt=%0.8f ",max_dt);    std::cout << f_val;
+        sprintf(f_val," dt=%0.8f ",dt);    std::cout << f_val;
+        std::cout << "   Simulation Time Not Plausible. simtime: "<< simtime << std::endl;
+    }
     prevtime = simtime;
-    prevcurrent = current;
 }
 
 void DCModel::setParams(double r,double l, double ki, double kv)
@@ -76,7 +111,7 @@ Servo::Servo()
     isPID_Pos = false;
     isPID_Speed = false;
     isPID_Torque = false;
-    isAdvertizing = false;
+    isPublishing = false;
 }
 
 void Servo::run_step(double simtime, double batVoltage)
@@ -104,9 +139,12 @@ void Servo::run_step(double simtime, double batVoltage)
         }
         //Electrical Motor simulation
         dc->run_step(simtime);
-        //Advertise
-        gazebo::msgs::Any pos = gazebo::msgs::ConvertAny(position.Radian());
-        pub_test->Publish(pos);
+        if(isPublishing)
+        {
+            pub_pos_target->Publish(gzm::ConvertAny(position.Radian()));
+            pub_torque->Publish(gzm::ConvertAny(getTorque()));
+            pub_current->Publish(gzm::ConvertAny(getCurrent()));
+        }
     }
 }
 
@@ -136,10 +174,12 @@ double Servo::getCurrent()
 
 double Servo::getTorque()
 {
+    double res = 0.0;
     if(type == ServoType::DC)
     {
-        return dc->torque;
+        res = dc->torque;
     }
+    return res;
 }
 
 void Servo::Set_ax12a()
@@ -147,12 +187,12 @@ void Servo::Set_ax12a()
     type = ServoType::DC;
     dc = new DCModel();
     //@9.6V => 900 mA; R = 10 Ohm
-    //L ~ 1 mH
+    //L ~ 0.1 mH
     //K ; @9.6V, 0 Load => U = K . Omega_rps => K = 9.6 / (0.196 sec / 60 deg)
     //0.196 sec / 60 deg => 0.85 Rpsec / reduction => 216 rps
     //Kv = 9.6 / (rps * 254) = 9.6 / 216 = ~ 0.044
     //Ki = (Stall_Torque/254) / i_max = ~ 0.0064
-    dc->setParams(10,0.001,0.0064,0.044);//r, l, ki, kv
+    dc->setParams(10,0.0001,0.0064,0.044);//r, l, ki, kv
     //--------------------------------------------------------
     //position => [-Pi , Pi]
     double iMAX = 0.5;
@@ -162,14 +202,19 @@ void Servo::Set_ax12a()
                                         1,
                                         iMAX,-iMAX,
                                         cmdMAX,-cmdMAX);
+    pos_pid->Reset();
 }
 
 void Servo::Advertise_ax12a(const std::string &servo_topic_path)
 {
-    isAdvertizing = true;
+    isPublishing = true;
     node = gzt::NodePtr(new gzt::Node());
     node->Init();
-    pub_test = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/pos");
+    pub_pos_target  = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/posref",100*10000,10000);//100*10000,10000
+    pub_torque      = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/torque",100*10000,10000);
+    pub_current     = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/current",100*10000,10000);
+
+    node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/current");
     
 }
 
@@ -226,6 +271,7 @@ void ServosController::SetPid(const std::string &jointName)
     //servos[jointName]->pid = new gazebo::common::PID(20,10,5,10,-10,50,-50);
     double cmdMAX = 1.47;//15 Kg cm => 1.47 N.m
     servos[jointName]->pid = new gazebo::common::PID(3,2,1,0.5,-0.5,cmdMAX,-cmdMAX);
+    servos[jointName]->pid->Reset();
     gazebo::physics::JointControllerPtr pj1 = model->GetJointController();
     pj1->SetPositionPID(jointName,*servos[jointName]->pid);
 

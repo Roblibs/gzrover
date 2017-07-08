@@ -12,8 +12,8 @@ class DCModel
 {
 public:
     DCModel();
-    const double min_dt = 1*10^-6;//microsecond - it does not make sense to go that far, error likeliness
-    const double max_dt = 1*10^-3;//milisecond - it gets close to the time constants
+    const double min_dt = 1.e-6;//microsecond - it does not make sense to go that far, error likeliness
+    const double max_dt = 1.e-3;//milisecond - it gets close to the time constants
     //Input Control Parameter
     double Voltage;//Applied Voltage V
 
@@ -36,7 +36,7 @@ public:
     //input from the Physics engine
     double speed;//Rotation (rad/s)
 private:
-    double safe_derive_current(double simtime);
+    bool safe_dt(double simtime,double &dt);
 public:
     void run_step(double simtime);
 public:
@@ -59,11 +59,15 @@ public:
     gazebo::common::PID *speed_pid;
     gazebo::common::PID *torque_pid;
     gazebo::transport::NodePtr node;
-    gazebo::transport::PublisherPtr   pub_test;
+    //Publishers
+    gazebo::transport::PublisherPtr   pub_pos_target;
+    gazebo::transport::PublisherPtr   pub_torque;
+    gazebo::transport::PublisherPtr   pub_current;
+    //boolean control
     bool    isPID_Pos;
     bool    isPID_Speed;
     bool    isPID_Torque;
-    bool    isAdvertizing;
+    bool    isPublishing;
 public:
     //The DC model does not need this because it does not influence the model params
     //relevant for regulation at servo level such as an encoder
