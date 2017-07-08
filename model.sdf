@@ -1161,7 +1161,7 @@
     <static>0</static>
     <allow_auto_disable>1</allow_auto_disable>
     <plugin name='libjoystick_control' filename='libjoystick_control.so'>
-      <ArmsServo>PID</ArmsServo>
+      <ArmsServo>AX12A</ArmsServo>
       <WheelsMotor>AX-GM2212-72Kv</WheelsMotor>
       <link_name>body</link_name>
       <battery_name>linear_battery</battery_name>

@@ -1,6 +1,12 @@
 
 #include "servos.hpp"
 
+#include <cmath>
+
+namespace igm = ignition::math;
+namespace gzc = gazebo::common;
+namespace gzt = gazebo::transport;
+
 DCModel::DCModel()
 {
     Voltage = 0;
@@ -34,7 +40,7 @@ double DCModel::safe_derive_current(double simtime)
     return res;
 }
 
-void DCModel::update(double simtime)
+void DCModel::run_step(double simtime)
 {
     //Stall Torque :  imax = 0.9, Torque = 1.5 N.m => K = 1,66 * red
     //Max speed    :  Rpm max = 1.2 Rps, U = 9.6 v => K = 8 / red
@@ -43,15 +49,10 @@ void DCModel::update(double simtime)
     counterElF = Kv * speed * reduction;//speed is in rad/sec => Hz
 
     current = (Voltage - counterElF - La * didt) / Ra;
-    char f_val[30];    sprintf(f_val,"i=%0.2f ",current);    std::cout << f_val;
+    //char f_val[30];    sprintf(f_val,"i=%0.2f ",current);    std::cout << f_val;
     torque = Ki * current * reduction;
-    if(torque != 0)
-    {
-        char f_val[30];    sprintf(f_val,"T=%0.2f ",torque);    std::cout << f_val << std::endl;
-    }
-
+    //if(torque != 0){char f_val[30];    sprintf(f_val,"T=%0.2f ",torque);    std::cout << f_val << std::endl;}
     didt = safe_derive_current(simtime);
-
     //store values for next cycle
     prevtime = simtime;
     prevcurrent = current;
@@ -70,12 +71,48 @@ void DCModel::control(double v)
     Voltage = v;
 }
 
-void Servo::update(double simtime)
+Servo::Servo()
+{
+    isPID_Pos = false;
+    isPID_Speed = false;
+    isPID_Torque = false;
+    isAdvertizing = false;
+}
+
+void Servo::run_step(double simtime, double batVoltage)
 {
     if(type == ServoType::DC)
     {
-        dc->update(simtime);
+        //PIDs regulation
+        if(isPID_Pos)
+        {
+            //calculate the error diff
+            igm::Angle pid_Target = target;
+            igm::Angle errAngle = position - pid_Target;
+            //errAngle.Normalize();
+            pos_pid->Update(errAngle.Radian(),gzc::Time(simtime));
+            //inputs
+            dc->control(batVoltage * pos_pid->GetCmd());//[-Vbat , Vbat]
+        }
+        else if(isPID_Speed)
+        {
+
+        }
+        else if(isPID_Torque)
+        {
+
+        }
+        //Electrical Motor simulation
+        dc->run_step(simtime);
+        //Advertise
+        gazebo::msgs::Any pos = gazebo::msgs::ConvertAny(position.Radian());
+        pub_test->Publish(pos);
     }
+}
+
+void Servo::updatePosition(double pos)
+{
+    position = pos;//math::Angle <= double
 }
 
 void Servo::updateSpeed(double o)
@@ -88,10 +125,13 @@ void Servo::updateSpeed(double o)
 
 double Servo::getCurrent()
 {
+    double res = 0.0;
     if(type == ServoType::DC)
     {
-        return dc->current;
+        //the Servo handles the voltage inversion, so the consumed current is always positive
+        res = fabs(dc->current);
     }
+    return res;
 }
 
 double Servo::getTorque()
@@ -100,6 +140,64 @@ double Servo::getTorque()
     {
         return dc->torque;
     }
+}
+
+void Servo::Set_ax12a()
+{
+    type = ServoType::DC;
+    dc = new DCModel();
+    //@9.6V => 900 mA; R = 10 Ohm
+    //L ~ 1 mH
+    //K ; @9.6V, 0 Load => U = K . Omega_rps => K = 9.6 / (0.196 sec / 60 deg)
+    //0.196 sec / 60 deg => 0.85 Rpsec / reduction => 216 rps
+    //Kv = 9.6 / (rps * 254) = 9.6 / 216 = ~ 0.044
+    //Ki = (Stall_Torque/254) / i_max = ~ 0.0064
+    dc->setParams(10,0.001,0.0064,0.044);//r, l, ki, kv
+    //--------------------------------------------------------
+    //position => [-Pi , Pi]
+    double iMAX = 0.5;
+    double cmdMAX = 1;//the regulator will multiply by battery voltage
+    pos_pid = new gazebo::common::PID(  3,           // 1/p : Error that brings cmd to max ~ pi/10
+                                        2,
+                                        1,
+                                        iMAX,-iMAX,
+                                        cmdMAX,-cmdMAX);
+}
+
+void Servo::Advertise_ax12a(const std::string &servo_topic_path)
+{
+    isAdvertizing = true;
+    node = gzt::NodePtr(new gzt::Node());
+    node->Init();
+    pub_test = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/pos");
+    
+}
+
+void Servo::SetPositionTarget(double v_target)
+{
+    isPID_Pos = true;
+    isPID_Speed = false;
+    isPID_Torque = false;
+    
+    target = v_target;
+}
+
+void Servo::SetSpeedTarget(double v_target)
+{
+    isPID_Pos = false;
+    isPID_Speed = true;
+    isPID_Torque = false;
+    
+    target = v_target;
+}
+
+void Servo::SetTorqueTarget(double v_target)
+{
+    isPID_Pos = false;
+    isPID_Speed = false;
+    isPID_Torque = true;
+    
+    target = v_target;
 }
 
 
@@ -130,20 +228,17 @@ void ServosController::SetPid(const std::string &jointName)
     servos[jointName]->pid = new gazebo::common::PID(3,2,1,0.5,-0.5,cmdMAX,-cmdMAX);
     gazebo::physics::JointControllerPtr pj1 = model->GetJointController();
     pj1->SetPositionPID(jointName,*servos[jointName]->pid);
+
+    isPID = true;
 }
 
 void ServosController::Set_ax12a(const std::string &jointName)
 {
     servos.insert(std::make_pair(jointName,new Servo()));
-    servos[jointName]->type = ServoType::DC;
-    servos[jointName]->dc = new DCModel();
-    //@9.6V => 900 mA; R = 10 Ohm
-    //L ~ 1 mH
-    //K ; @9.6V, 0 Load => U = K . Omega_rps => K = 9.6 / (0.196 sec / 60 deg)
-    //0.196 sec / 60 deg => 0.85 Rpsec / reduction => 216 rps
-    //Kv = 9.6 / (rps * 254) = 9.6 / 216 = ~ 0.044
-    //Ki = (Stall_Torque/254) / i_max = ~ 0.0064
-    servos[jointName]->dc->setParams(10,0.001,0.0064,0.044);//r, l, ki, kv
+    servos[jointName]->Set_ax12a();
+    std::string servo_topic_path = "/gazebo/default/"+model->GetName()+"/servos/"+jointName;
+    servos[jointName]->Advertise_ax12a(servo_topic_path);
+    isDC = true;
 }
 
 
@@ -152,12 +247,10 @@ void ServosController::SetServo(const std::string &jointName, const std::string 
     if(servoName.compare("PID") == 0)
     {
         SetPid(jointName);
-        isPID = true;
     }
     else if(servoName.compare("AX12A") == 0)
     {
         Set_ax12a(jointName);
-        isDC = true;
     }
     else if(servoName.compare("AX-GM2212-72Kv") == 0)
     {
@@ -169,32 +262,27 @@ void ServosController::SetServo(const std::string &jointName, const std::string 
 
 void ServosController::SetPositionTarget(const std::string &jointName, double target)
 {
-    if(servos[jointName]->type == ServoType::PID)
+    Servo &serv = *servos[jointName];
+    if(serv.type == ServoType::PID)
     {
         gazebo::physics::JointControllerPtr pj1 = model->GetJointController();
         pj1->SetPositionTarget(jointName,target);
     }
-    //TODO remove, for testing purpose set full power for any pos control
-    if(servos[jointName]->type == ServoType::DC)
+    if(serv.type == ServoType::DC)
     {
-        servos[jointName]->dc->control(bat->Voltage());//currently set to full voltage
+        serv.SetPositionTarget(target);
+        //std::cout << "PosTarget " << target;
     }
 }
 
 void ServosController::SetSpeedTarget(const std::string &jointName, double target)
 {
-    if(servos[jointName]->type == ServoType::DC)
-    {
-
-    }
+    servos[jointName]->SetSpeedTarget(target);
 }
 
 void ServosController::SetTorqueTarget(const std::string &jointName, double target)
 {
-    if(servos[jointName]->type == ServoType::DC)
-    {
-        servos[jointName]->dc->control(bat->Voltage());//currently set to full voltage
-    }
+    servos[jointName]->SetTorqueTarget(target);
 }
 	
 void ServosController::update(double simtime)
@@ -208,18 +296,24 @@ void ServosController::update(double simtime)
         }
         else if(servo.second->type == ServoType::DC)
         {
+            gazebo::physics::JointPtr joint = model->GetJoint(servo.first);
             //------------update the motors physics from the simulation------------
-            double jspeed = model->GetJoint(servo.first)->GetVelocity(0);
-            servo.second->updateSpeed(jspeed);
-            //------------------process the electrical simulation------------------
-            for(int i=0;i<Mechanical_To_Electrical_Simulation_Factor;i++)
-            {
-                servo.second->update(simtime / Mechanical_To_Electrical_Simulation_Factor);
-            }
+            servo.second->updateSpeed(joint->GetVelocity(0));
+            //------------update the servo encoder for position regulation------------
+            servo.second->updatePosition(joint->Position());
+            //---------process the Servo control loop + electrical simulation---------
+            //every step needs the new battery level value
+            servo.second->run_step(simtime,bat->Voltage());
             //------------inject the generated Force into the simulation--------------
-            model->GetJoint(servo.first)->SetForce(0,servo.second->getTorque());
+            joint->SetForce(0,servo.second->getTorque());
             //TODO consume the current from the battery
-            //servo.second->getCurrent();
+            /*
+            std::cout << " Vel " << joint->GetVelocity(0);
+            std::cout << " Pos " << joint->Position();
+            std::cout << " Volt " << bat->Voltage();
+            std::cout << " Tq " << servo.second->getTorque();
+            std::cout << " i " << servo.second->getCurrent() << std::endl;
+            */
         }
     }
 }

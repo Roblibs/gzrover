@@ -4,6 +4,7 @@
 #include <map>
 #include <gazebo/physics/physics.hh>
 #include <gazebo/common/common.hh>
+#include <gazebo/transport/transport.hh>
 
 enum class ServoType { PID, DC};
 
@@ -33,29 +34,56 @@ public:
     double torque;//Motor Torque
 
     //input from the Physics engine
-    double position;//rad
     double speed;//Rotation (rad/s)
 private:
     double safe_derive_current(double simtime);
 public:
-    void update(double simtime);
+    void run_step(double simtime);
 public:
-    void setParams(double r,double l, double ki, double kv);   //on init
-    void control(double v);                        //input regulate
+    void setParams(double r,double l, double ki, double kv);    //on init
+    void control(double v);                                     //input regulate
 };
 
 class Servo
 {
 public:
+    Servo();
+    void Set_ax12a();
+    void Advertise_ax12a(const std::string &servo_topic_path);
+public:
     ServoType           type;
-    gazebo::common::PID *pid;
+    gazebo::common::PID *pid;   //Direct Axis Control PID
     DCModel             *dc;
+
+    gazebo::common::PID *pos_pid;
+    gazebo::common::PID *speed_pid;
+    gazebo::common::PID *torque_pid;
+    gazebo::transport::NodePtr node;
+    gazebo::transport::PublisherPtr   pub_test;
+    bool    isPID_Pos;
+    bool    isPID_Speed;
+    bool    isPID_Torque;
+    bool    isAdvertizing;
 public:
-    void update(double simtime = 0.0);
+    //The DC model does not need this because it does not influence the model params
+    //relevant for regulation at servo level such as an encoder
+    ignition::math::Angle position;
+    //One unique target for all of Pos,Speed,Torque
+    //As they cannot be regulated simultaneously, switching the control set 
+    //a new context for this target variable
+    double target;
 public:
-    void updateSpeed(double o);                    //input Speed
-    double getCurrent();                           //output regulate, intermediate loop
-    double getTorque();                            //output Result
+    void run_step(double simtime, double batVoltage);
+public:
+    void updatePosition(double pos);//input axis angle !must be called if pos_pid in use!
+    void updateSpeed(double o);     //input Speed !must be called if speed_pid in use!
+    //-----------------
+	void SetPositionTarget(double target);
+	void SetSpeedTarget(double target);
+	void SetTorqueTarget(double target);
+    //-----------------
+    double getCurrent();            //output regulate, intermediate loop
+    double getTorque();             //output Result
     
 };
 
