@@ -12,8 +12,6 @@ class DCModel
 {
 public:
     DCModel();
-    const double min_dt = 1.e-6;//microsecond - it does not make sense to go that far, error likeliness
-    const double max_dt = 1.e-3;//milisecond - it gets close to the time constants
     //Input Control Parameter
     double Voltage;//Applied Voltage V
 
@@ -28,17 +26,15 @@ public:
     double current;//Armature current
     double prevcurrent;
     double didt;//current derivate
-    double prevtime;
 
     //Output result, to apply to the Joint
     double torque;//Motor Torque
 
     //input from the Physics engine
     double speed;//Rotation (rad/s)
-private:
-    bool safe_dt(double simtime,double &dt);
 public:
-    void run_step(double simtime);
+    void step(double dt);
+    void reset();
 public:
     void setParams(double r,double l, double ki, double kv);    //on init
     void control(double v);                                     //input regulate
@@ -47,9 +43,15 @@ public:
 class Servo
 {
 public:
+    const double min_dt = 1.e-6;//microsecond - it does not make sense to go that far, error likeliness
+    const double max_dt = 5.e-3;//milisecond - it gets close to the time constants
+public:
     Servo();
     void Set_ax12a();
     void Advertise_ax12a(const std::string &servo_topic_path);
+private:
+    bool safe_dt(double simtime,double &dt);
+    double prevtime;
 public:
     ServoType           type;
     gazebo::common::PID *pid;   //Direct Axis Control PID

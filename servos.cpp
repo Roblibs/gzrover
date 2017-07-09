@@ -28,69 +28,52 @@ DCModel::DCModel()
     prevcurrent = 0;
     torque = 0;
     speed = 0;
-    prevtime = 0.0;
 }
 
-bool DCModel::safe_dt(double simtime, double &dt)
+void DCModel::reset()
 {
-    double res = false;
-    if(simtime != 0.0)                  //making sure it is a valid time and not the default value
-        if(simtime > prevtime)         //making sure the time has advanced so that dt is not 0
-        {
-            double tdiff = simtime - prevtime;
-            if(tdiff >= min_dt)     //plausibilisation, small values are more likely to be errors
-                if(tdiff <= max_dt) //plausibilisation, close to time constants, and eliminates gaps
-                {
-                    dt = tdiff;
-                    res = true;
-                }
-        }
-    return res;
+    Voltage = 0;
+    counterElF = 0;
+    current = 0;
+    didt = 0;
+    prevcurrent = 0;
+    torque = 0;
+    speed = 0;
 }
 
-void DCModel::run_step(double simtime)
+void DCModel::step(double dt)
 {
-    double dt = 0;
-    if(safe_dt(simtime,dt))
+    //Stall Torque :  imax = 0.9, Torque = 1.5 N.m => K = 1,66 * red
+    //Max speed    :  Rpm max = 1.2 Rps, U = 9.6 v => K = 8 / red
+    //red = 2.2
+    //std::cout << "[" << Voltage << "]" << std::endl;
+    counterElF = Kv * speed * reduction;//speed is in rad/sec => Hz
+    if((counterElF < -20)||(counterElF>20))
     {
-        //Stall Torque :  imax = 0.9, Torque = 1.5 N.m => K = 1,66 * red
-        //Max speed    :  Rpm max = 1.2 Rps, U = 9.6 v => K = 8 / red
-        //red = 2.2
-        //std::cout << "[" << Voltage << "]" << std::endl;
-        counterElF = Kv * speed * reduction;//speed is in rad/sec => Hz
-        if((counterElF < -20)||(counterElF>20))
-        {
-            std::cout << "counterElf Too High>counterElF: " << counterElF << " Kv " << Kv << " speed " << speed << " dt " << dt <<" reduction " << reduction << std::endl;
-        }
-        counterElF = clamp(counterElF,-10,10);
+        std::cout << "counterElf Too High>counterElF: " << counterElF << " Kv " << Kv << " speed " << speed << " dt " << dt <<" reduction " << reduction << std::endl;
+    }
+    counterElF = clamp(counterElF,-8,8);
 
-        current = (Voltage - counterElF - La * didt) / Ra;
-        if((current < -6)||(current>6))
-        {
-            std::cout << "current Too High>current: "<< current <<" Voltage " << Voltage << " counterElF " << counterElF << " La " << La << " didt " << didt << " Ra " << Ra << std::endl;
-        }
-        current = clamp(current,-2,2);
-        //GZ_ASSERT(((current < -2)||(current>2)), "Current Too High");
-        //char f_val[30];    sprintf(f_val,"i=%0.2f ",current);    std::cout << f_val;
-        torque = Ki * current * reduction;
-        if((torque < -6)||(torque>6))
-        {
-            std::cout << "torque too High>torque: " << torque <<" Ki " << Ki << " current " << current << " reduction " << reduction << std::endl;
-        }
-        //GZ_ASSERT(((torque < -2)||(torque>2)), "Torque Too High");
-        //if(torque != 0){char f_val[30];    sprintf(f_val,"T=%0.2f ",torque);    std::cout << f_val << std::endl;}
-        didt = (current - prevcurrent) / dt;
-        //store values for next cycle
-        prevcurrent = current;
-    }
-    else
+    //current = (Voltage - counterElF - La * didt) / Ra;//didt is not filtred and is too high
+    current = (Voltage - counterElF) / Ra;
+    if((current < -6)||(current>6))
     {
-        char f_val[60];    sprintf(f_val," min_dt=%0.8f ",min_dt);    std::cout << f_val;
-        sprintf(f_val," max_dt=%0.8f ",max_dt);    std::cout << f_val;
-        sprintf(f_val," dt=%0.8f ",dt);    std::cout << f_val;
-        std::cout << "   Simulation Time Not Plausible. simtime: "<< simtime << std::endl;
+        std::cout << "current Too High(no didt)>current: "<< current <<" Voltage " << Voltage << " counterElF " << counterElF << " La " << La << " didt " << didt << " Ra " << Ra << std::endl;
     }
-    prevtime = simtime;
+    current = clamp(current,-1,1);
+    //GZ_ASSERT(((current < -2)||(current>2)), "Current Too High");
+    //char f_val[30];    sprintf(f_val,"i=%0.2f ",current);    std::cout << f_val;
+    torque = Ki * current * reduction;
+    if((torque < -6)||(torque>6))
+    {
+        std::cout << "torque too High>torque: " << torque <<" Ki " << Ki << " current " << current << " reduction " << reduction << std::endl;
+    }
+    torque = clamp(torque,-1,1);
+    //GZ_ASSERT(((torque < -2)||(torque>2)), "Torque Too High");
+    //if(torque != 0){char f_val[30];    sprintf(f_val,"T=%0.2f ",torque);    std::cout << f_val << std::endl;}
+    didt = (current - prevcurrent) / dt;
+    //store values for next cycle
+    prevcurrent = current;
 }
 
 void DCModel::setParams(double r,double l, double ki, double kv)
@@ -112,39 +95,73 @@ Servo::Servo()
     isPID_Speed = false;
     isPID_Torque = false;
     isPublishing = false;
+    prevtime = 0;
+}
+
+bool Servo::safe_dt(double simtime, double &dt)
+{
+    double res = false;
+    if(simtime != 0.0)                  //making sure it is a valid time and not the default value
+        if(simtime > prevtime)         //making sure the time has advanced so that dt is not 0
+        {
+            double tdiff = simtime - prevtime;
+            if(tdiff >= min_dt)     //plausibilisation, small values are more likely to be errors
+                if(tdiff <= max_dt) //plausibilisation, close to time constants, and eliminates gaps
+                {
+                    dt = tdiff;
+                    res = true;
+                }
+        }
+    return res;
 }
 
 void Servo::run_step(double simtime, double batVoltage)
 {
     if(type == ServoType::DC)
     {
-        //PIDs regulation
-        if(isPID_Pos)
+        double dt = 0;
+        if(safe_dt(simtime,dt))
         {
-            //calculate the error diff
-            igm::Angle pid_Target = target;
-            igm::Angle errAngle = position - pid_Target;
-            //errAngle.Normalize();
-            pos_pid->Update(errAngle.Radian(),gzc::Time(simtime));
-            //inputs
-            dc->control(batVoltage * pos_pid->GetCmd());//[-Vbat , Vbat]
+            //PIDs regulation
+            if(isPID_Pos)
+            {
+                //calculate the error diff
+                igm::Angle pid_Target = target;
+                igm::Angle errAngle = position - pid_Target;
+                //errAngle.Normalize();
+                double e = errAngle.Radian() / 3.141592654;//normalized error ~ [-1 , 1]
+                pos_pid->Update(e,gzc::Time(dt));
+                //inputs
+                dc->control(batVoltage * pos_pid->GetCmd());//[-Vbat , Vbat]
+            }
+            else if(isPID_Speed)
+            {
+
+            }
+            else if(isPID_Torque)
+            {
+
+            }
+            //Electrical Motor simulation
+            dc->step(dt);
         }
-        else if(isPID_Speed)
+        else
         {
+            char f_val[60];    sprintf(f_val," min_dt=%0.8f ",min_dt);    std::cout << f_val;
+            sprintf(f_val," max_dt=%0.8f ",max_dt);    std::cout << f_val;
+            sprintf(f_val," dt=%0.8f ",dt);    std::cout << f_val;
+            std::cout << "   Simulation Time Not Plausible. simtime: "<< simtime << std::endl;
+            //clear accumulated energy
+            pos_pid->Reset();
 
         }
-        else if(isPID_Torque)
-        {
-
-        }
-        //Electrical Motor simulation
-        dc->run_step(simtime);
         if(isPublishing)
         {
-            pub_pos_target->Publish(gzm::ConvertAny(position.Radian()));
+            pub_pos_target->Publish(gzm::ConvertAny(target));
             pub_torque->Publish(gzm::ConvertAny(getTorque()));
             pub_current->Publish(gzm::ConvertAny(getCurrent()));
         }
+        prevtime = simtime;
     }
 }
 
@@ -190,16 +207,17 @@ void Servo::Set_ax12a()
     //L ~ 0.1 mH
     //K ; @9.6V, 0 Load => U = K . Omega_rps => K = 9.6 / (0.196 sec / 60 deg)
     //0.196 sec / 60 deg => 0.85 Rpsec / reduction => 216 rps
-    //Kv = 9.6 / (rps * 254) = 9.6 / 216 = ~ 0.044
+    //Kv = 9.6 / (rps * 254) = 9.6 / 216 = ~ 0.044 - speed coming from phyisics too high
     //Ki = (Stall_Torque/254) / i_max = ~ 0.0064
-    dc->setParams(10,0.0001,0.0064,0.044);//r, l, ki, kv
+    dc->setParams(10,0.0001,0.0064,0.008);//r, l, ki, kv
     //--------------------------------------------------------
     //position => [-Pi , Pi]
-    double iMAX = 0.5;
+    double iMAX = 0.8;
     double cmdMAX = 1;//the regulator will multiply by battery voltage
+    //3,2,1, 0.5  1
     pos_pid = new gazebo::common::PID(  3,           // 1/p : Error that brings cmd to max ~ pi/10
-                                        2,
                                         1,
+                                        0.5,
                                         iMAX,-iMAX,
                                         cmdMAX,-cmdMAX);
     pos_pid->Reset();
