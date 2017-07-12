@@ -9,6 +9,7 @@ namespace gzc = gazebo::common;
 namespace gzt = gazebo::transport;
 namespace gzm = gazebo::msgs;
 
+
 double clamp(double val, double low, double high) 
 {
   return std::max(low, std::min(val, high));
@@ -50,7 +51,7 @@ void DCModel::step(double dt)
     counterElF = Kv * speed * reduction;//speed is in rad/sec => Hz
     if((counterElF < -20)||(counterElF>20))
     {
-        std::cout << "counterElf Too High>counterElF: " << counterElF << " Kv " << Kv << " speed " << speed << " dt " << dt <<" reduction " << reduction << std::endl;
+        //std::cout << "counterElf Too High>counterElF: " << counterElF << " Kv " << Kv << " speed " << speed << " dt " << dt <<" reduction " << reduction << std::endl;
     }
     counterElF = clamp(counterElF,-8,8);
 
@@ -89,13 +90,15 @@ void DCModel::control(double v)
     Voltage = v;
 }
 
-Servo::Servo()
+Servo::Servo():speedFilter(10),positionFilter(10)
 {
     isPID_Pos = false;
     isPID_Speed = false;
     isPID_Torque = false;
     isPublishing = false;
     prevtime = 0;
+    
+    
 }
 
 bool Servo::safe_dt(double simtime, double &dt)
@@ -114,7 +117,7 @@ bool Servo::safe_dt(double simtime, double &dt)
         }
     return res;
 }
-
+int valcount = 0;
 void Servo::run_step(double simtime, double batVoltage)
 {
     if(type == ServoType::DC)
@@ -160,6 +163,8 @@ void Servo::run_step(double simtime, double batVoltage)
             pub_pos_target->Publish(gzm::ConvertAny(target));
             pub_torque->Publish(gzm::ConvertAny(getTorque()));
             pub_current->Publish(gzm::ConvertAny(getCurrent()));
+            pub_posf->Publish(gzm::ConvertAny(position.Radian()));
+            pub_speedf->Publish(gzm::ConvertAny(dc->speed));
         }
         prevtime = simtime;
     }
@@ -167,14 +172,19 @@ void Servo::run_step(double simtime, double batVoltage)
 
 void Servo::updatePosition(double pos)
 {
-    position = pos;//math::Angle <= double
+    //This position is used for the Servo PID, when jittering, the jitter is amplified and applied as torque
+    position = positionFilter.add_read(pos);//math::Angle <= double
+    //std::cout << "pos: " << pos << " : " << position.Radian();
 }
 
 void Servo::updateSpeed(double o)
 {
+    //the speed is used to create the Counter Electromotive Force, so when jittering with an unrealistic high up and down
+    //it results in multiple jittering DC model parameters
     if(type == ServoType::DC)
     {
-        dc->speed = o;
+        dc->speed = speedFilter.add_read(o);
+        //std::cout << "speed: " << o << " : " << dc->speed << " : " << std::endl;
     }
 }
 
@@ -231,6 +241,8 @@ void Servo::Advertise_ax12a(const std::string &servo_topic_path)
     pub_pos_target  = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/posref",100*10000,10000);//100*10000,10000
     pub_torque      = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/torque",100*10000,10000);
     pub_current     = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/current",100*10000,10000);
+    pub_posf        = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/posf",100*10000,10000);
+    pub_speedf      = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/speedf",100*10000,10000);
 
     node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/current");
     
@@ -351,6 +363,12 @@ void ServosController::SetTorqueTarget(const std::string &jointName, double targ
 	
 void ServosController::update(double simtime)
 {
+    static int count = 0;
+    count++;
+    if(count%10000 == 0)
+    {
+        std::cout << "count " << count << std::endl;
+    }
     for(auto& servo : servos)
     {
         //std::cout << servo.first << " " <<  << std::endl;

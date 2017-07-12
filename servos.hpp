@@ -5,6 +5,50 @@
 #include <gazebo/physics/physics.hh>
 #include <gazebo/common/common.hh>
 #include <gazebo/transport/transport.hh>
+#include <queue>
+
+class WindowFilter
+{
+public:
+    WindowFilter(unsigned int nb)
+    {
+        assert(nb!= 0);//so that we have no division by 0, and it makes no sense for a filter
+        nb_samples = nb;
+        startNb = 0;
+        sum = 0;
+    }
+private:
+    unsigned int nb_samples;
+    unsigned int startNb;
+public:
+    std::queue<double>  q;
+    double              sum;
+    void addMeasure(double m)
+    {
+        q.push(m);//push to the back
+        sum+= m;
+        if(startNb<nb_samples)
+        {
+            startNb++;
+        }
+        else
+        {
+            sum-= q.front();
+            q.pop();//pop from the front
+        }
+    }
+    double read()
+    {
+        //startNb is equal to nb_samples after the sart sequence
+        //std::cout << "sum " << sum << " ; nb " << startNb << " : ";
+        return sum / startNb;
+    }
+    double add_read(double val)
+    {
+        addMeasure(val);
+        return read();
+    }
+};
 
 enum class ServoType { PID, DC};
 
@@ -65,6 +109,8 @@ public:
     gazebo::transport::PublisherPtr   pub_pos_target;
     gazebo::transport::PublisherPtr   pub_torque;
     gazebo::transport::PublisherPtr   pub_current;
+    gazebo::transport::PublisherPtr   pub_posf;
+    gazebo::transport::PublisherPtr   pub_speedf;
     //boolean control
     bool    isPID_Pos;
     bool    isPID_Speed;
@@ -80,6 +126,9 @@ public:
     double target;
 public:
     void run_step(double simtime, double batVoltage);
+private:
+    WindowFilter speedFilter;
+    WindowFilter positionFilter;
 public:
     void updatePosition(double pos);//input axis angle !must be called if pos_pid in use!
     void updateSpeed(double o);     //input Speed !must be called if speed_pid in use!

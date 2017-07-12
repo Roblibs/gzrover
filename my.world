@@ -26,11 +26,11 @@
       </ode>
     </physics>
     <physics name="higher_ode" type="ode">
-      <real_time_update_rate>10000</real_time_update_rate>
-      <max_step_size>0.0001</max_step_size>
+      <real_time_update_rate>2000</real_time_update_rate>
+      <max_step_size>0.0005</max_step_size>
       <ode>
         <solver>
-          <type>quick</type>
+          <type>world</type>
           <iters>50</iters>
         </solver>
       </ode>
@@ -44,6 +44,46 @@
           <iters>200</iters>
         </solver>
       </ode>
+    </physics>
+    <physics name="top_ode" type="ode">
+      <real_time_update_rate>10000</real_time_update_rate>
+      <max_step_size>0.0001</max_step_size>
+      <ode>
+        <solver>
+          <type>world</type>
+          <iters>50</iters>
+        </solver>
+      </ode>
+    </physics>
+    <physics name="world_ode" type="ode">
+      <real_time_update_rate>1000</real_time_update_rate>
+      <max_step_size>0.001</max_step_size>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>50</iters>
+        </solver>
+      </ode>
+    </physics>
+    <physics name="max_ode" type="ode">
+      <real_time_update_rate>20000</real_time_update_rate>
+      <max_step_size>0.00005</max_step_size>
+      <ode>
+        <solver>
+          <type>world</type>
+          <iters>200</iters>
+        </solver>
+      </ode>
+    </physics>
+    <physics name="bullet" type="bullet">
+      <real_time_update_rate>10000</real_time_update_rate>
+      <max_step_size>0.0001</max_step_size>
+      <bullet>
+        <solver>
+          <type>sequential_impulse</type>
+          <iters>50</iters>
+        </solver>
+      </bullet>
     </physics>
 
   </world>
