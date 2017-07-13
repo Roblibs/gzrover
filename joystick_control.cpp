@@ -76,7 +76,7 @@ namespace gazebo
       bool isUpdated = false;
       if(joy.update())//multiple events will be filtered, only last would appear afterwards
       {
-        joy.printUpdates();
+        //joy.printUpdates();
         isUpdated = true;
       }
       bool going_up = false;
@@ -85,7 +85,7 @@ namespace gazebo
       {
         Target = igm::Angle::Pi;//init to Pi
         Target *= ((getup_axis.getValue()+1)/2);// 0->1
-        std::cout << "Target : " << Target << std::endl;
+        //std::cout << "Target : " << Target << std::endl;
         going_up = true;
       }
       JAxis &turnup_axis = joy.getAxis(2);

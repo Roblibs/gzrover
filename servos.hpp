@@ -50,6 +50,53 @@ public:
     }
 };
 
+class PowerFilter
+{
+public:
+    PowerFilter(unsigned int nb)
+    {
+        assert(nb!= 0);//so that we have no division by 0, and it makes no sense for a filter
+        nb_samples = nb;
+        startNb = 0;
+        prev = 0;
+        sum = 0;
+    }
+private:
+    unsigned int nb_samples;
+    unsigned int startNb;
+public:
+    std::queue<double>  q;
+    double              sum;
+    double              prev;
+    void addMeasure(double m)
+    {
+        double sample = abs(prev - m);
+        q.push(sample);//push to the back
+        sum+= sample;
+        prev = m;//the last pushed at the back
+        if(startNb<nb_samples)
+        {
+            startNb++;
+        }
+        else
+        {
+            sum-= q.front();
+            q.pop();//pop from the front
+        }
+    }
+    double read()
+    {
+        //startNb is equal to nb_samples after the sart sequence
+        //std::cout << "sum " << sum << " ; nb " << startNb << " : ";
+        return sum / startNb;
+    }
+    double add_read(double val)
+    {
+        addMeasure(val);
+        return read();
+    }
+};
+
 enum class ServoType { PID, DC};
 
 class DCModel
@@ -124,14 +171,17 @@ public:
     //As they cannot be regulated simultaneously, switching the control set 
     //a new context for this target variable
     double target;
+    double jitter;
 public:
     void run_step(double simtime, double batVoltage);
 private:
-    WindowFilter speedFilter;
-    WindowFilter positionFilter;
+    WindowFilter    speedFilter;
+    WindowFilter    positionFilter;
+    PowerFilter     jitterMeasure;
 public:
     void updatePosition(double pos);//input axis angle !must be called if pos_pid in use!
     void updateSpeed(double o);     //input Speed !must be called if speed_pid in use!
+    double getJitter();     //input Speed !must be called if speed_pid in use!
     //-----------------
 	void SetPositionTarget(double target);
 	void SetSpeedTarget(double target);

@@ -90,14 +90,14 @@ void DCModel::control(double v)
     Voltage = v;
 }
 
-Servo::Servo():speedFilter(10),positionFilter(10)
+Servo::Servo():speedFilter(6),positionFilter(6),jitterMeasure(6)
 {
     isPID_Pos = false;
     isPID_Speed = false;
     isPID_Torque = false;
     isPublishing = false;
     prevtime = 0;
-    
+    jitter = 0;
     
 }
 
@@ -179,6 +179,7 @@ void Servo::updatePosition(double pos)
 
 void Servo::updateSpeed(double o)
 {
+    jitterMeasure.addMeasure(o);
     //the speed is used to create the Counter Electromotive Force, so when jittering with an unrealistic high up and down
     //it results in multiple jittering DC model parameters
     if(type == ServoType::DC)
@@ -186,6 +187,11 @@ void Servo::updateSpeed(double o)
         dc->speed = speedFilter.add_read(o);
         //std::cout << "speed: " << o << " : " << dc->speed << " : " << std::endl;
     }
+}
+
+double Servo::getJitter()
+{
+    return jitterMeasure.read();
 }
 
 double Servo::getCurrent()
@@ -365,10 +371,8 @@ void ServosController::update(double simtime)
 {
     static int count = 0;
     count++;
-    if(count%10000 == 0)
-    {
-        std::cout << "count " << count << std::endl;
-    }
+    double sumJitter = 0;
+    int nb_serv = 0;
     for(auto& servo : servos)
     {
         //std::cout << servo.first << " " <<  << std::endl;
@@ -396,6 +400,12 @@ void ServosController::update(double simtime)
             std::cout << " Tq " << servo.second->getTorque();
             std::cout << " i " << servo.second->getCurrent() << std::endl;
             */
+            sumJitter+=servo.second->getJitter();
+            nb_serv++;
         }
+    }
+    if(count%10000 == 0)
+    {
+        std::cout << "@ " << count << " ; avg jitter: "<< sumJitter/nb_serv << std::endl;
     }
 }
