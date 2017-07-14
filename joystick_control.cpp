@@ -26,6 +26,9 @@ namespace gazebo
 
     public: void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
     {
+      gzLogInit("server-", "gzserver.log");
+      gzlog << "Start Load" << std::endl;
+      std::cout << "Logging in " << gzLogDirectory() << std::endl;
       // Store the pointer to the model
       model = _parent;
 
@@ -73,6 +76,7 @@ namespace gazebo
     // Called by the world update start event
     public: void OnUpdate(const common::UpdateInfo & _info)
     {
+      //std::cout << "OnUpdate" << std::endl;
       bool isUpdated = false;
       if(joy.update())//multiple events will be filtered, only last would appear afterwards
       {

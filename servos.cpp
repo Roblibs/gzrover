@@ -96,6 +96,7 @@ Servo::Servo():speedFilter(6),positionFilter(6),jitterMeasure(6)
     isPID_Speed = false;
     isPID_Torque = false;
     isPublishing = false;
+    isLogging = false;
     prevtime = 0;
     jitter = 0;
     
@@ -165,6 +166,12 @@ void Servo::run_step(double simtime, double batVoltage)
             pub_current->Publish(gzm::ConvertAny(getCurrent()));
             pub_posf->Publish(gzm::ConvertAny(position.Radian()));
             pub_speedf->Publish(gzm::ConvertAny(dc->speed));
+        }
+        if(isLogging)
+        {
+            //gzlog << "Torque" << "\t" << "Current" << "\t" << "PosRef" << "\t" << "Positionf" << "\t" << "speedf" << std::endl;
+            gzlog << "\t" << name << "\t" << getTorque() << "\t" << getCurrent() << "\t" << target << "\t" << position.Radian() << "\t" << dc->speed << std::endl;
+
         }
         prevtime = simtime;
     }
@@ -237,11 +244,13 @@ void Servo::Set_ax12a()
                                         iMAX,-iMAX,
                                         cmdMAX,-cmdMAX);
     pos_pid->Reset();
+
+    isLogging = true;
 }
 
 void Servo::Advertise_ax12a(const std::string &servo_topic_path)
 {
-    isPublishing = true;
+    isPublishing = false;
     node = gzt::NodePtr(new gzt::Node());
     node->Init();
     pub_pos_target  = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/posref",100*10000,10000);//100*10000,10000
@@ -249,9 +258,6 @@ void Servo::Advertise_ax12a(const std::string &servo_topic_path)
     pub_current     = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/current",100*10000,10000);
     pub_posf        = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/posf",100*10000,10000);
     pub_speedf      = node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/speedf",100*10000,10000);
-
-    node->Advertise<gazebo::msgs::Any>(servo_topic_path+"/current");
-    
 }
 
 void Servo::SetPositionTarget(double v_target)
@@ -318,9 +324,12 @@ void ServosController::Set_ax12a(const std::string &jointName)
 {
     servos.insert(std::make_pair(jointName,new Servo()));
     servos[jointName]->Set_ax12a();
+    servos[jointName]->name = jointName;
     std::string servo_topic_path = "/gazebo/default/"+model->GetName()+"/servos/"+jointName;
     servos[jointName]->Advertise_ax12a(servo_topic_path);
     isDC = true;
+
+    gzlog << "\t" << "Name" << "\t" << "Torque" << "\t" << "Current" << "\t" << "PosRef" << "\t" << "Positionf" << "\t" << "speedf" << std::endl;
 }
 
 
@@ -366,7 +375,28 @@ void ServosController::SetTorqueTarget(const std::string &jointName, double targ
 {
     servos[jointName]->SetTorqueTarget(target);
 }
-	
+
+bool ServosController::isTimeTicked(double period)
+{
+    static double lastTick = 0;
+    double timeNow = model->GetWorld()->RealTime().Double();
+    bool isRes = false;
+    if(lastTick == 0)
+    {
+        lastTick = timeNow;
+        isRes = true;
+    }
+    else
+    {
+        if((timeNow-lastTick) > period)
+        {
+            lastTick = timeNow;
+            isRes = true;
+        }
+    }
+    return isRes;
+}
+
 void ServosController::update(double simtime)
 {
     static int count = 0;
@@ -393,18 +423,11 @@ void ServosController::update(double simtime)
             //------------inject the generated Force into the simulation--------------
             joint->SetForce(0,servo.second->getTorque());
             //TODO consume the current from the battery
-            /*
-            std::cout << " Vel " << joint->GetVelocity(0);
-            std::cout << " Pos " << joint->Position();
-            std::cout << " Volt " << bat->Voltage();
-            std::cout << " Tq " << servo.second->getTorque();
-            std::cout << " i " << servo.second->getCurrent() << std::endl;
-            */
             sumJitter+=servo.second->getJitter();
             nb_serv++;
         }
     }
-    if(count%10000 == 0)
+    if(isTimeTicked(3.0))
     {
         std::cout << "@ " << count << " ; avg jitter: "<< sumJitter/nb_serv << std::endl;
     }

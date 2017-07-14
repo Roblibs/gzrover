@@ -144,6 +144,7 @@ private:
     bool safe_dt(double simtime,double &dt);
     double prevtime;
 public:
+    std::string         name;
     ServoType           type;
     gazebo::common::PID *pid;   //Direct Axis Control PID
     DCModel             *dc;
@@ -163,6 +164,7 @@ public:
     bool    isPID_Speed;
     bool    isPID_Torque;
     bool    isPublishing;
+    bool    isLogging;
 public:
     //The DC model does not need this because it does not influence the model params
     //relevant for regulation at servo level such as an encoder
@@ -221,4 +223,5 @@ public:
     
     void update(double simtime = 0.0);
 	
+    bool isTimeTicked(double period);
 };
