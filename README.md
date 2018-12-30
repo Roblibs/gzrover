@@ -4,8 +4,10 @@ Gazebo directory for the Rover robot SDF model and plugin
 - Using a joystick library for input
 - Using JointController as PID for ARM Axis
 
-# repositories
-* [documentation and design](https://github.com/Roblibs/rovdesign)
+# project documents
+* [github doc repo](https://github.com/Roblibs/rovdesign)
+* [notes](https://1drv.ms/f/s!AqigYL7yN3H9i0pmUBlPZhDI9gqb)
+* [reports](https://drive.google.com/drive/folders/1pOzpCvMHlKyRsvchgMWl__mA53C8NJeZ?usp=sharing)
 
 # Media
 - Jerky PID
